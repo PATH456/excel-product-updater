@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "excel-product-updater"
+version = "0.0.0"
+description = "Scaffolding for reviewable Excel product price and promotion imports"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
+dependencies = ["openpyxl>=3.1,<4"]
+classifiers = [
+    "Development Status :: 1 - Planning",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Operating System :: OS Independent",
+]
+
+[project.optional-dependencies]
+dev = ["build>=1,<2", "pytest>=8,<10"]
+
+[project.urls]
+Repository = "https://github.com/PATH456/excel-product-updater"
+Issues = "https://github.com/PATH456/excel-product-updater/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
