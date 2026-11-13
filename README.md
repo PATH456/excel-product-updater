@@ -1,106 +1,122 @@
 # excel-product-updater
 
-A Python package being developed to prepare product price and store promotion
-updates from Excel for staff review, installable into an existing website project.
+A project to help store staff prepare product price and promotion updates from
+an Excel spreadsheet, review them, and approve them for the store website.
 
-**Status: scaffolding only.** Reading, validation, matching, previews, and website
-integration are not implemented. There is no CLI or public importer API yet.
-Version `0.0.0` identifies this scaffold, not an MVP release. Distribution name
-`excel-product-updater` and import name `excel_product_updater` are provisional.
-PyPI availability could not be verified; check naming before publishing.
+## Current status
 
-## Development setup
+We are starting with documentation only. There is no working importer and
+nothing to install or run yet.
 
-Requires Python 3.10 or newer. From the repository root:
+The goal is to learn by building one small piece at a time. Add a file or tool
+when we need it, understand what it does, and document it here. All project
+instructions and notes live in this README.
 
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install -e '.[dev]'
-python -c "import excel_product_updater; print(excel_product_updater.__doc__)"
-python -m build
-```
+## Files in this project
 
-On Windows activate with `.venv\Scripts\activate`. Editable installation uses
-the source directly. `openpyxl` is declared for the planned reader; `build` and
-`pytest` are development dependencies. Django is not required by the core package.
-The existing [MIT license](LICENSE) is retained.
+- `README.md`: explains the project, decisions, and how to use it as it grows.
+- `.gitignore`: tells Git which local files to leave out of commits, such as
+  private spreadsheets, passwords, and generated Python files.
+- `LICENSE`: contains the project's existing MIT license.
 
-## Planned import rules
+Git also keeps a hidden `.git/` directory for version history.
 
-- Read one `.xlsx` worksheet with columns `Mã hàng`, `Tên hàng`, `Thương hiệu`,
-  `Giá bán`, and `Mô tả`. Validate required headers and report invalid rows with
-  reasons. Exact optional-field handling remains to be defined.
-- Use `Decimal` for prices. Process valid positive prices only. Skip zero-price
-  rows entirely, including promotions. Report negative or invalid prices.
-- Update existing products only; never create products. Products absent from
-  the sheet or without a confirmed match stay unchanged.
-- For approved matches, **replace the existing price** with `Giá bán`, make it
-  visible, and replace the store promotion with `Mô tả`.
-- Preserve promotion text and line breaks. Empty `Mô tả` clears the previous
-  promotion. Do not calculate discounts or subtract promotion amounts from prices.
-- Require preview and staff confirmation before database updates. Clearly show
-  price replacement and promotion removals in the preview.
+## What we want to build
 
-Match the complete spreadsheet product code in website product names as the
-strongest signal. Ignore capitalization and surrounding whitespace; preserve
-meaningful punctuation and model suffixes initially. Avoid partial matches inside
-longer codes. Check brand agreement when both records have a brand. One clear match
-may become a proposal; multiple candidates or brand conflicts require review.
-Never automatically choose uncertain matches. Full-name equality is unnecessary.
-Matching has not been validated and no match rate is claimed.
+1. Read a single worksheet from an Excel `.xlsx` file.
+2. Check its columns and product rows, explaining any problems.
+3. Find existing website products that match the spreadsheet products.
+4. Show proposed price and promotion changes for staff review.
+5. Let the website apply only the changes staff approve.
 
-## Package and website boundaries
+The first coding step will be a small Python script that opens a made-up
+spreadsheet and prints its rows. We will explain the script and anything it
+needs before adding more features.
 
-The reusable package will read Excel with `openpyxl`, validate rows, accept website
-product records, match them, and return structured proposals, skips, and errors.
-**It will never write directly to the store database.**
+## Planned spreadsheet rules
 
-The separate website integration will fetch catalog data and provide staff-only
-Django Admin upload, preview, confirmation, and results. It must keep reviewed
-changes server-side, detect changes since preview, and apply approved updates in
-a database transaction. Proposed website fields are `is_price_visible` (default
-`False`) and `store_promotion` (default empty); neither is implemented here.
+The spreadsheet uses these columns:
 
-The initial target uses Django 4.2 / Django REST Framework and Next.js App Router.
-Existing product fields include `id`, `name`, `brand`, `model_number`, `price`,
-`description`, and `compare_price`. The reported price field is
-`DecimalField(max_digits=12, decimal_places=2)`. Reported model numbers were empty,
-which motivates matching codes in names. A global `SHOW_PRICES = false` currently
-hides numeric prices: database updates alone will not make them visible. Website
-work must address per-product visibility, promotions, discount badges, and sorting
-when prices are hidden. These observations come from the project brief and have
-not been independently inspected during setup.
+| Column | Meaning |
+| --- | --- |
+| `Mã hàng` | Product code |
+| `Tên hàng` | Product name |
+| `Thương hiệu` | Brand |
+| `Giá bán` | Selling price |
+| `Mô tả` | Store promotion text |
 
-Customer-facing and store-admin text should be Vietnamese. Code identifiers,
-comments, and package documentation should be English.
+- Use valid positive prices. Skip zero-price rows completely, including their
+  promotions. Report negative or invalid prices.
+- Use Python's `Decimal` type for money when price handling is implemented.
+- Update existing products only. Never create products from the spreadsheet.
+- For approved matches, replace the price with `Giá bán`, make the price visible,
+  and replace the store promotion with `Mô tả`.
+- Preserve promotion wording and line breaks. An empty `Mô tả` clears the old
+  promotion. Do not subtract promotion amounts from the selling price.
+- Leave absent, unmatched, uncertain, and unapproved products unchanged.
+- Show changes before saving, including promotion removals. Require staff approval.
 
-## Layout and next steps
+Required fields, blank values, duplicate handling, price limits, and rounding
+still need precise rules as we implement them.
 
-```text
-pyproject.toml
-src/excel_product_updater/__init__.py   # Package marker only
-tests/README.md                        # Planned test coverage
-examples/README.md                     # Synthetic fixture and expected outcomes
-examples/generate_sample.py            # Recreates the example workbook
-examples/sample_products.xlsx          # Synthetic data only
-docs/MVP_CHECKLIST.md
-CONTRIBUTING.md
-LICENSE
-```
+## Planned product matching
 
-The `src/` layout helps reveal packaging mistakes by requiring installation before
-imports. Feature modules will be added when needed, without placeholder APIs.
-See the [MVP checklist](docs/MVP_CHECKLIST.md), [examples](examples/README.md), and
-[contribution guidance](CONTRIBUTING.md).
+Look for the complete spreadsheet product code in the website product name.
+Ignore capitalization and surrounding whitespace, but preserve punctuation and
+model suffixes. For example, `DEMO-FR100-A` must not match `DEMO-FR100-A2`.
+
+Check brands when both sides provide one. Multiple candidates or conflicting
+brands require review. Never automatically choose an uncertain match. Full
+product names do not need to be identical. Matching has not been tested yet.
+
+## Website integration, later
+
+Keep Excel reading, validation, and matching separate from the website. That
+Python code should return proposed changes and explanations without writing to
+the store database. The website will handle staff access, uploads, previews,
+confirmation, and saving.
+
+Notes from the original project brief, not independently checked:
+
+- The website uses Django 4.2, Django REST Framework, and Next.js App Router.
+- Product fields include `id`, `name`, `brand`, `model_number`, `price`,
+  `description`, and `compare_price`. Model numbers were reported as empty.
+- The price field is `DecimalField(max_digits=12, decimal_places=2)`.
+- A global `SHOW_PRICES = false` currently hides numeric prices. Updating the
+  database alone will not make them visible.
+- Proposed fields are `is_price_visible` (initially false) and `store_promotion`
+  (initially empty). These have not been implemented.
+
+The website will need to keep reviewed changes on the server, detect products
+changed since preview, and save approved updates together in a database
+transaction. Price visibility, promotion display, discount badges, and sorting
+also need checking.
+
+Customer-facing and staff-facing text should be Vietnamese. Code identifiers,
+comments, and project documentation should be English.
+
+## How we will check our work
+
+Use made-up data. As behavior is added, check valid and invalid prices, missing
+or duplicate columns and codes, similar product codes, brand conflicts,
+unmatched products, and promotion changes. Add automated tests when there is
+behavior to test. Website approval and database behavior need separate checks
+in the website project.
+
+Useful future examples include a positive price with a multiline promotion, a
+positive price with an empty promotion, zero, a negative price, and a price
+containing text. No examples or tests are implemented yet.
+
+## Keeping the scope small
+
+Start with one worksheet and one store workflow. Fuzzy matching, creating
+products, inventory updates, scheduled imports, complex spreadsheets, and
+supporting multiple store platforms are outside the initial scope.
+
+Packaging, publishing, build tools, and automated checks can be introduced when
+needed. If we later publish a Python package, confirm its name first and check
+that it installs correctly.
 
 Never commit customer spreadsheets, catalog exports, databases, or credentials.
-Workbooks are ignored by default; only the named synthetic example is allowed.
-Out of scope: fuzzy matching, product creation, inventory updates, scheduled
-imports, complex multi-sheet layouts, and multiple commerce-platform integrations.
-
-AI assistance was used for initial scaffolding and documentation. Contributors
-should disclose meaningful AI assistance and verify changes. A potential Open
-Source Student Innovation Challenge 2027 submission is a future goal; solving
-the store's real workflow is the immediate priority.
+Use `private_data/` for local private files; it is ignored by Git. Review changes
+before committing. The ignore rules do not remove files already tracked by Git.
